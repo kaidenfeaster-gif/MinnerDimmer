@@ -2,110 +2,228 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Space Miner Tycoon</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Miner: Galactic Tycoon</title>
     <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-purple: #9d00ff;
+        }
         body {
-            background-color: #0b0e14;
-            color: #00d4ff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        #stats-bar {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            width: 100%;
             text-align: center;
+            border-bottom: 2px solid var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        .crystal-count {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+        #game-area {
+            flex: 1;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 90%;
+            max-width: 1200px;
+        }
+        /* Feature 2: Satisfying Asteroid */
+        #asteroid-container { position: relative; }
+        #asteroid {
+            width: 250px;
+            cursor: pointer;
+            filter: drop-shadow(0 0 20px #555);
+            transition: transform 0.05s;
             user-select: none;
         }
-        #game-container {
-            margin-top: 50px;
+        #asteroid:hover { transform: scale(1.05) rotate(2deg); }
+        #asteroid:active { transform: scale(0.9) rotate(-2deg); }
+
+        /* Feature 1: Floating Text Animation */
+        .click-text {
+            position: absolute;
+            color: var(--neon-blue);
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 0.8s ease-out forwards;
         }
-        #asteroid {
-            width: 200px;
-            cursor: pointer;
-            transition: transform 0.1s;
-            filter: drop-shadow(0 0 10px #555);
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-100px); }
         }
-        #asteroid:active {
-            transform: scale(0.9);
-        }
-        .stats {
-            font-size: 24px;
-            margin: 20px 0;
-        }
+
+        /* Feature 3: Better Shop UI */
         .shop {
-            background: #1a1f29;
-            width: 300px;
-            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
             padding: 20px;
             border-radius: 15px;
-            border: 1px solid #00d4ff;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 300px;
+        }
+        .upgrade-card {
+            background: rgba(0, 0, 0, 0.3);
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
         button {
-            background: #00d4ff;
+            background: var(--neon-blue);
             border: none;
-            padding: 10px 20px;
+            color: black;
+            padding: 8px;
             border-radius: 5px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 10px;
         }
-        button:disabled {
-            background: #444;
-            cursor: not-allowed;
-        }
+        button:disabled { background: #444; opacity: 0.5; }
+        
+        /* Star background */
+        #stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <h1>🚀 Space Miner</h1>
-        <div class="stats">Crystals: <span id="crystal-count">0</span></div>
-        
-        <img src="https://cdn-icons-png.flaticon.com/512/2530/2530833.png" id="asteroid" alt="Asteroid">
-        
-        <div class="stats" style="font-size: 16px;">Crystals per second: <span id="cps-count">0</span></div>
+    <div id="stats-bar">
+        <div class="crystal-count" id="crystals">0</div>
+        <div>Crystals Per Second: <span id="cps">0</span></div>
+    </div>
+
+    <div id="game-area">
+        <div id="asteroid-container">
+            <img id="asteroid" src="https://cdn-icons-png.flaticon.com/512/2530/2530833.png" alt="Asteroid">
+        </div>
 
         <div class="shop">
-            <h3>Ship Upgrades</h3>
-            <p>Auto-Miner Cost: <span id="upgrade-cost">10</span></p>
-            <button id="buy-btn">Buy Auto-Miner</button>
+            <h2 style="margin-top:0">Upgrades</h2>
+            <div class="upgrade-card">
+                <span>🤖 Robo-Drill (+1 CPS)</span>
+                <button id="buy-1">Cost: 15</button>
+            </div>
+            <div class="upgrade-card">
+                <span>🛰️ Plasma Cannon (+10 CPS)</span>
+                <button id="buy-10">Cost: 150</button>
+            </div>
+            <button id="reset-btn" style="background: #ff4444; margin-top: 20px;">Reset Game</button>
         </div>
     </div>
 
+    <canvas id="stars"></canvas>
+
     <script>
-        let crystals = 0;
-        let autoMiners = 0;
-        let minerCost = 10;
+        // Data & Feature 4: Save System
+        let crystals = parseFloat(localStorage.getItem('crystals')) || 0;
+        let cps = parseFloat(localStorage.getItem('cps')) || 0;
+        let cost1 = parseFloat(localStorage.getItem('cost1')) || 15;
+        let cost10 = parseFloat(localStorage.getItem('cost10')) || 150;
 
-        const crystalDisplay = document.getElementById('crystal-count');
-        const cpsDisplay = document.getElementById('cps-count');
-        const costDisplay = document.getElementById('upgrade-cost');
-        const asteroid = document.getElementById('asteroid');
-        const buyBtn = document.getElementById('buy-btn');
+        const crystalEl = document.getElementById('crystals');
+        const cpsEl = document.getElementById('cps');
+        const ast = document.getElementById('asteroid');
 
-        // Clicking the asteroid
-        asteroid.addEventListener('click', () => {
-            crystals++;
-            updateDisplay();
+        function updateUI() {
+            crystalEl.innerText = Math.floor(crystals).toLocaleString();
+            cpsEl.innerText = cps.toFixed(1);
+            document.getElementById('buy-1').innerText = `Cost: ${Math.floor(cost1)}`;
+            document.getElementById('buy-10').innerText = `Cost: ${Math.floor(cost10)}`;
+            document.getElementById('buy-1').disabled = crystals < cost1;
+            document.getElementById('buy-10').disabled = crystals < cost10;
+            
+            // Feature 2: Visual Milestones (Glow increases)
+            ast.style.filter = `drop-shadow(0 0 ${Math.min(cps + 5, 50)}px var(--neon-blue))`;
+            
+            // Save to LocalStorage
+            localStorage.setItem('crystals', crystals);
+            localStorage.setItem('cps', cps);
+            localStorage.setItem('cost1', cost1);
+            localStorage.setItem('cost10', cost10);
+        }
+
+        // Feature 1: Floating Text Logic
+        ast.addEventListener('click', (e) => {
+            crystals += 1;
+            const text = document.createElement('div');
+            text.className = 'click-text';
+            text.innerText = '+1';
+            text.style.left = e.clientX + 'px';
+            text.style.top = e.clientY + 'px';
+            document.body.appendChild(text);
+            setTimeout(() => text.remove(), 800);
+            updateUI();
         });
 
-        // Buying an upgrade
-        buyBtn.addEventListener('click', () => {
-            if (crystals >= minerCost) {
-                crystals -= minerCost;
-                autoMiners++;
-                minerCost = Math.round(minerCost * 1.5); // Price goes up!
-                updateDisplay();
+        // Upgrades
+        document.getElementById('buy-1').addEventListener('click', () => {
+            if (crystals >= cost1) {
+                crystals -= cost1;
+                cps += 1;
+                cost1 *= 1.15;
+                updateUI();
             }
         });
 
-        function updateDisplay() {
-            crystalDisplay.innerText = Math.floor(crystals);
-            cpsDisplay.innerText = autoMiners;
-            costDisplay.innerText = minerCost;
-            buyBtn.disabled = crystals < minerCost;
-        }
+        document.getElementById('buy-10').addEventListener('click', () => {
+            if (crystals >= cost10) {
+                crystals -= cost10;
+                cps += 10;
+                cost10 *= 1.2;
+                updateUI();
+            }
+        });
 
-        // The Auto-Miner Logic (Runs every second)
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            localStorage.clear();
+            location.reload();
+        });
+
+        // Feature 5: Star Background Animation
+        const canvas = document.getElementById('stars');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function initStars() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = [];
+            for(let i=0; i<100; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2});
+        }
+        function drawStars() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.s, 0, Math.PI*2);
+                ctx.fill();
+                s.y += 0.2; if(s.y > canvas.height) s.y = 0;
+            });
+            requestAnimationFrame(drawStars);
+        }
+        initStars(); drawStars();
+
+        // Game Loop
         setInterval(() => {
-            crystals += autoMiners;
-            updateDisplay();
-        }, 1000);
+            crystals += (cps / 10);
+            updateUI();
+        }, 100);
+
+        updateUI();
     </script>
 </body>
 </html>
