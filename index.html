@@ -38,9 +38,8 @@
             height: 75vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
-        #asteroid-clicker { position: relative; cursor: pointer; transition: transform 0.1s; }
-        #asteroid-clicker:active { transform: scale(0.92); }
-        #asteroid-img { width: 280px; filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.2)); }
+        #asteroid-img { width: 280px; cursor: pointer; transition: transform 0.1s; filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.2)); }
+        #asteroid-img:active { transform: scale(0.92); }
 
         .shop-btn {
             background: var(--neon-blue); border: none; color: black;
@@ -49,12 +48,12 @@
         }
         .shop-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-        /* --- SLOW PULSE OWNER PANEL --- */
+        /* --- OWNER PANEL PULSE --- */
         #admin-panel {
             display: none; 
             padding: 15px; border-radius: 15px; margin-top: 10px;
             border: 3px solid white;
-            animation: slowStrobe 3s infinite ease-in-out; /* Much slower 3-second pulse */
+            animation: slowStrobe 3s infinite ease-in-out;
         }
 
         @keyframes slowStrobe {
@@ -68,6 +67,9 @@
             background: white; color: black; flex: 2; 
             border: none; padding: 10px; cursor: pointer; font-weight: bold; border-radius: 5px;
         }
+        /* Active State for Buttons */
+        .admin-btn.active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+
         .disable-btn {
             background: #000; color: #ff4444; flex: 1;
             border: 1px solid #ff4444; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.7rem;
@@ -99,7 +101,7 @@
     <div id="top-nav">
         <div class="crystal-display">💎 <span id="crystal-count">0</span></div>
         <div id="user-info">
-            <button id="login-btn" style="background: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; border:none;">Sign in with Google</button>
+            <button id="login-btn" style="background: white; padding: 5px 10px; border:none; border-radius: 5px; cursor: pointer;">Sign in with Google</button>
             <span id="player-name" style="display:none; font-weight: bold; color: var(--neon-blue);"></span>
         </div>
     </div>
@@ -121,9 +123,9 @@
         <div class="side-panel">
             <h2 style="text-align:center; margin-top:0;">⚙️ Upgrades</h2>
             <p style="text-align:center; font-size:0.9rem; color: #aaa;">CPS: <span id="cps-display">0</span></p>
-            <button class="shop-btn" id="buy-drill" onclick="buyItem('drill')">🤖 Robo-Drill</button>
-            <button class="shop-btn" id="buy-drone" onclick="buyItem('drone')">🛸 Drone Fleet</button>
-            <button class="shop-btn" id="buy-cannon" onclick="buyItem('cannon')">🛰️ Plasma Cannon</button>
+            <button class="shop-btn" id="buy-drill" onclick="buyItem('drill')">🤖 Robo-Drill (15)</button>
+            <button class="shop-btn" id="buy-drone" onclick="buyItem('drone')">🛸 Drone Fleet (100)</button>
+            <button class="shop-btn" id="buy-cannon" onclick="buyItem('cannon')">🛰️ Plasma Cannon (500)</button>
             
             <div id="admin-panel">
                 <h3 style="margin:0 0 10px 0; color: white; text-align:center; text-shadow: 2px 2px black;">OWNER PANEL</h3>
@@ -133,13 +135,13 @@
                 </div>
 
                 <div class="admin-group">
-                    <button class="admin-btn" onclick="superSpeed()">10x CPS Boost</button>
-                    <button class="disable-btn" onclick="disableSpeed()">OFF</button>
+                    <button id="speed-btn" class="admin-btn" onclick="toggleSpeed(true)">10x Speed</button>
+                    <button class="disable-btn" onclick="toggleSpeed(false)">OFF</button>
                 </div>
 
                 <div class="admin-group">
-                    <button class="admin-btn" onclick="godMode()">God Click</button>
-                    <button class="disable-btn" onclick="disableGod()">OFF</button>
+                    <button id="god-btn" class="admin-btn" onclick="toggleGod(true)">God Click</button>
+                    <button class="disable-btn" onclick="toggleGod(false)">OFF</button>
                 </div>
 
                 <button class="danger-btn" onclick="fullReset()">Reset Player (To 0)</button>
@@ -154,42 +156,59 @@
     <script>
         let crystals = parseFloat(localStorage.getItem('crystals')) || 0;
         let cps = parseFloat(localStorage.getItem('cps')) || 0;
-        let originalCps = cps;
+        let baseCps = cps; // Tracks real progress
         let drillCost = 15;
         let droneCost = 100;
         let cannonCost = 500;
+        
         let godClickActive = false;
+        let speedCheatActive = false;
 
         function checkCode() {
             const input = document.getElementById('secret-input');
             if (input.value === 'OWNERISBETTER') {
                 document.getElementById('admin-panel').style.display = 'block';
-                input.value = ""; // CLEARS THE CODE BOX
-                input.style.display = 'none'; // HIDES THE BOX
+                input.value = ""; 
+                input.style.display = 'none'; 
             }
         }
 
         // --- OWNER FUNCTIONS ---
-        function addMoney() { crystals += 1000000000; updateUI(); }
-        
-        function superSpeed() { 
-            if (cps > 0) originalCps = cps; 
-            cps = (cps <= 0) ? 1000 : cps * 10; 
+        function addMoney() { 
+            crystals += 1000000000; 
             updateUI(); 
         }
-        function disableSpeed() { cps = originalCps; updateUI(); }
+        
+        function toggleSpeed(enable) { 
+            speedCheatActive = enable;
+            const btn = document.getElementById('speed-btn');
+            if (enable) {
+                baseCps = cps; // Remember what they had
+                cps = (cps === 0) ? 5000 : cps * 10;
+                btn.classList.add('active');
+            } else {
+                cps = baseCps; // Restore original
+                btn.classList.remove('active');
+            }
+            updateUI();
+        }
 
-        function godMode() { godClickActive = true; }
-        function disableGod() { godClickActive = false; }
+        function toggleGod(enable) { 
+            godClickActive = enable; 
+            const btn = document.getElementById('god-btn');
+            if (enable) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
 
         function fullReset() {
-            if(confirm("OWNER: Are you sure you want to reset EVERYTHING to 0?")) {
+            if(confirm("OWNER: Reset EVERYTHING to 0?")) {
                 crystals = 0;
                 cps = 0;
-                originalCps = 0;
+                baseCps = 0;
                 localStorage.clear();
+                toggleSpeed(false);
+                toggleGod(false);
                 updateUI();
-                alert("Player has been reset to 0.");
             }
         }
 
@@ -204,10 +223,10 @@
             document.getElementById('buy-cannon').disabled = crystals < cannonCost;
 
             localStorage.setItem('crystals', crystals);
-            localStorage.setItem('cps', cps);
+            if (!speedCheatActive) localStorage.setItem('cps', cps);
         }
 
-        document.getElementById('asteroid-clicker').onclick = (e) => {
+        document.getElementById('asteroid-img').onclick = (e) => {
             let power = godClickActive ? 1000000000 : (1 + (cps * 0.15));
             crystals += power;
             
@@ -223,9 +242,9 @@
         };
 
         function buyItem(item) {
-            if(item === 'drill' && crystals >= drillCost) { crystals -= drillCost; cps += 1; }
-            if(item === 'drone' && crystals >= droneCost) { crystals -= droneCost; cps += 8; }
-            if(item === 'cannon' && crystals >= cannonCost) { crystals -= cannonCost; cps += 40; }
+            if(item === 'drill' && crystals >= drillCost) { crystals -= drillCost; cps += 1; baseCps += 1; }
+            if(item === 'drone' && crystals >= droneCost) { crystals -= droneCost; cps += 8; baseCps += 8; }
+            if(item === 'cannon' && crystals >= cannonCost) { crystals -= cannonCost; cps += 40; baseCps += 40; }
             updateUI();
         }
 
