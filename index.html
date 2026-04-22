@@ -61,6 +61,7 @@
             font-weight: bold;
             pointer-events: none;
             animation: floatUp 0.8s ease-out forwards;
+            z-index: 100;
         }
         @keyframes floatUp {
             0% { opacity: 1; transform: translateY(0); }
@@ -74,7 +75,9 @@
             border-radius: 15px;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            width: 300px;
+            width: 320px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         .upgrade-card {
             background: rgba(0, 0, 0, 0.3);
@@ -84,7 +87,11 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+            border: 1px solid transparent;
+            transition: 0.3s;
         }
+        .upgrade-card:hover { border-color: var(--neon-blue); }
+        
         button {
             background: var(--neon-blue);
             border: none;
@@ -94,7 +101,7 @@
             font-weight: bold;
             cursor: pointer;
         }
-        button:disabled { background: #444; opacity: 0.5; }
+        button:disabled { background: #444; opacity: 0.5; cursor: not-allowed; }
         
         /* Star background */
         #stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
@@ -119,21 +126,31 @@
                 <button id="buy-1">Cost: 15</button>
             </div>
             <div class="upgrade-card">
-                <span>🛰️ Plasma Cannon (+10 CPS)</span>
-                <button id="buy-10">Cost: 150</button>
+                <span>🛸 Drone Fleet (+5 CPS)</span>
+                <button id="buy-5">Cost: 75</button>
             </div>
-            <button id="reset-btn" style="background: #ff4444; margin-top: 20px;">Reset Game</button>
+            <div class="upgrade-card">
+                <span>🛰️ Plasma Cannon (+20 CPS)</span>
+                <button id="buy-10">Cost: 250</button>
+            </div>
+            <div class="upgrade-card" style="border: 1px solid gold;">
+                <span>🌀 Quantum Boost (CPS x1.2)</span>
+                <button id="buy-boost">Cost: 1000</button>
+            </div>
+            <button id="reset-btn" style="background: #ff4444; margin-top: 20px; width: 100%;">Reset Game</button>
         </div>
     </div>
 
     <canvas id="stars"></canvas>
 
     <script>
-        // Data & Feature 4: Save System
+        // Data & Save System
         let crystals = parseFloat(localStorage.getItem('crystals')) || 0;
         let cps = parseFloat(localStorage.getItem('cps')) || 0;
         let cost1 = parseFloat(localStorage.getItem('cost1')) || 15;
-        let cost10 = parseFloat(localStorage.getItem('cost10')) || 150;
+        let cost5 = parseFloat(localStorage.getItem('cost5')) || 75;
+        let cost10 = parseFloat(localStorage.getItem('cost10')) || 250;
+        let costBoost = parseFloat(localStorage.getItem('costBoost')) || 1000;
 
         const crystalEl = document.getElementById('crystals');
         const cpsEl = document.getElementById('cps');
@@ -142,27 +159,35 @@
         function updateUI() {
             crystalEl.innerText = Math.floor(crystals).toLocaleString();
             cpsEl.innerText = cps.toFixed(1);
-            document.getElementById('buy-1').innerText = `Cost: ${Math.floor(cost1)}`;
-            document.getElementById('buy-10').innerText = `Cost: ${Math.floor(cost10)}`;
-            document.getElementById('buy-1').disabled = crystals < cost1;
-            document.getElementById('buy-10').disabled = crystals < cost10;
             
-            // Feature 2: Visual Milestones (Glow increases)
+            document.getElementById('buy-1').innerText = `Cost: ${Math.floor(cost1)}`;
+            document.getElementById('buy-5').innerText = `Cost: ${Math.floor(cost5)}`;
+            document.getElementById('buy-10').innerText = `Cost: ${Math.floor(cost10)}`;
+            document.getElementById('buy-boost').innerText = `Cost: ${Math.floor(costBoost)}`;
+
+            document.getElementById('buy-1').disabled = crystals < cost1;
+            document.getElementById('buy-5').disabled = crystals < cost5;
+            document.getElementById('buy-10').disabled = crystals < cost10;
+            document.getElementById('buy-boost').disabled = crystals < costBoost;
+            
             ast.style.filter = `drop-shadow(0 0 ${Math.min(cps + 5, 50)}px var(--neon-blue))`;
             
-            // Save to LocalStorage
             localStorage.setItem('crystals', crystals);
             localStorage.setItem('cps', cps);
             localStorage.setItem('cost1', cost1);
+            localStorage.setItem('cost5', cost5);
             localStorage.setItem('cost10', cost10);
+            localStorage.setItem('costBoost', costBoost);
         }
 
-        // Feature 1: Floating Text Logic
+        // Click Logic with Scaling Power
         ast.addEventListener('click', (e) => {
-            crystals += 1;
+            let clickPower = 1 + (cps * 0.1); // You get 10% of your CPS per click!
+            crystals += clickPower;
+            
             const text = document.createElement('div');
             text.className = 'click-text';
-            text.innerText = '+1';
+            text.innerText = '+' + clickPower.toFixed(1);
             text.style.left = e.clientX + 'px';
             text.style.top = e.clientY + 'px';
             document.body.appendChild(text);
@@ -170,31 +195,36 @@
             updateUI();
         });
 
-        // Upgrades
+        // Upgrade Buying Events
         document.getElementById('buy-1').addEventListener('click', () => {
-            if (crystals >= cost1) {
-                crystals -= cost1;
-                cps += 1;
-                cost1 *= 1.15;
-                updateUI();
-            }
+            if (crystals >= cost1) { crystals -= cost1; cps += 1; cost1 *= 1.15; updateUI(); }
+        });
+
+        document.getElementById('buy-5').addEventListener('click', () => {
+            if (crystals >= cost5) { crystals -= cost5; cps += 5; cost5 *= 1.18; updateUI(); }
         });
 
         document.getElementById('buy-10').addEventListener('click', () => {
-            if (crystals >= cost10) {
-                crystals -= cost10;
-                cps += 10;
-                cost10 *= 1.2;
-                updateUI();
+            if (crystals >= cost10) { crystals -= cost10; cps += 20; cost10 *= 1.22; updateUI(); }
+        });
+
+        document.getElementById('buy-boost').addEventListener('click', () => {
+            if (crystals >= costBoost) { 
+                crystals -= costBoost; 
+                cps = cps === 0 ? 1 : cps * 1.2; // Multiplies total CPS by 20%
+                costBoost *= 2.5; 
+                updateUI(); 
             }
         });
 
         document.getElementById('reset-btn').addEventListener('click', () => {
-            localStorage.clear();
-            location.reload();
+            if(confirm("Are you sure you want to reset everything?")) {
+                localStorage.clear();
+                location.reload();
+            }
         });
 
-        // Feature 5: Star Background Animation
+        // Background Animation
         const canvas = document.getElementById('stars');
         const ctx = canvas.getContext('2d');
         let stars = [];
@@ -217,7 +247,7 @@
         }
         initStars(); drawStars();
 
-        // Game Loop
+        // Smooth Game Loop
         setInterval(() => {
             crystals += (cps / 10);
             updateUI();
