@@ -49,18 +49,18 @@
         }
         .shop-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-        /* --- STROBE OWNER PANEL --- */
+        /* --- SLOW PULSE OWNER PANEL --- */
         #admin-panel {
             display: none; 
             padding: 15px; border-radius: 15px; margin-top: 10px;
-            border: 4px solid white;
-            animation: strobeEffect 0.4s infinite; /* The flashing effect */
+            border: 3px solid white;
+            animation: slowStrobe 3s infinite ease-in-out; /* Much slower 3-second pulse */
         }
 
-        @keyframes strobeEffect {
-            0% { background: rgba(255, 0, 0, 0.8); border-color: #00d4ff; box-shadow: 0 0 20px red; }
-            50% { background: rgba(0, 0, 255, 0.8); border-color: #ff0000; box-shadow: 0 0 20px blue; }
-            100% { background: rgba(255, 0, 0, 0.8); border-color: #00d4ff; box-shadow: 0 0 20px red; }
+        @keyframes slowStrobe {
+            0% { background: rgba(200, 0, 0, 0.6); box-shadow: 0 0 15px red; }
+            50% { background: rgba(0, 0, 200, 0.6); box-shadow: 0 0 15px blue; }
+            100% { background: rgba(200, 0, 0, 0.6); box-shadow: 0 0 15px red; }
         }
 
         .admin-group { display: flex; gap: 5px; margin-bottom: 8px; }
@@ -69,8 +69,13 @@
             border: none; padding: 10px; cursor: pointer; font-weight: bold; border-radius: 5px;
         }
         .disable-btn {
-            background: #000; color: #ff0000; flex: 1;
-            border: 1px solid red; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.7rem;
+            background: #000; color: #ff4444; flex: 1;
+            border: 1px solid #ff4444; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.7rem;
+        }
+        .danger-btn {
+            background: #ff4444; color: white; width: 100%; border: none; 
+            padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer;
+            margin-top: 5px; text-transform: uppercase;
         }
 
         #secret-input {
@@ -94,7 +99,7 @@
     <div id="top-nav">
         <div class="crystal-display">💎 <span id="crystal-count">0</span></div>
         <div id="user-info">
-            <button id="login-btn" style="background: white; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Sign in with Google</button>
+            <button id="login-btn" style="background: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; border:none;">Sign in with Google</button>
             <span id="player-name" style="display:none; font-weight: bold; color: var(--neon-blue);"></span>
         </div>
     </div>
@@ -105,7 +110,7 @@
             <div id="leaderboard-content" style="overflow-y:auto; flex:1">
                 <div class="leader-item" style="display:flex; justify-content:space-between; padding:10px; border-bottom: 1px solid #333;"><span>1. NovaStrike</span> <span>5.0M</span></div>
                 <div class="leader-item" style="display:flex; justify-content:space-between; padding:10px; border-bottom: 1px solid #333;"><span>2. CometCrasher</span> <span>1.2M</span></div>
-                <div id="my-best-row" class="leader-item" style="display:flex; justify-content:space-between; padding:10px; background: rgba(0,212,255,0.1);"><span>YOU</span> <span id="my-best">0</span></div>
+                <div class="leader-item" style="display:flex; justify-content:space-between; padding:10px; background: rgba(0,212,255,0.1);"><span>YOU</span> <span id="my-best">0</span></div>
             </div>
         </div>
 
@@ -116,12 +121,12 @@
         <div class="side-panel">
             <h2 style="text-align:center; margin-top:0;">⚙️ Upgrades</h2>
             <p style="text-align:center; font-size:0.9rem; color: #aaa;">CPS: <span id="cps-display">0</span></p>
-            <button class="shop-btn" id="buy-drill">🤖 Robo-Drill</button>
-            <button class="shop-btn" id="buy-drone">🛸 Drone Fleet</button>
-            <button class="shop-btn" id="buy-cannon">🛰️ Plasma Cannon</button>
+            <button class="shop-btn" id="buy-drill" onclick="buyItem('drill')">🤖 Robo-Drill</button>
+            <button class="shop-btn" id="buy-drone" onclick="buyItem('drone')">🛸 Drone Fleet</button>
+            <button class="shop-btn" id="buy-cannon" onclick="buyItem('cannon')">🛰️ Plasma Cannon</button>
             
             <div id="admin-panel">
-                <h3 style="margin:0 0 10px 0; color: white; text-align:center; text-shadow: 2px 2px black;">OWNER OVERDRIVE</h3>
+                <h3 style="margin:0 0 10px 0; color: white; text-align:center; text-shadow: 2px 2px black;">OWNER PANEL</h3>
                 
                 <div class="admin-group">
                     <button class="admin-btn" onclick="addMoney()">+1B Crystals</button>
@@ -136,11 +141,13 @@
                     <button class="admin-btn" onclick="godMode()">God Click</button>
                     <button class="disable-btn" onclick="disableGod()">OFF</button>
                 </div>
+
+                <button class="danger-btn" onclick="fullReset()">Reset Player (To 0)</button>
             </div>
 
-            <input type="text" id="secret-input" placeholder="Enter OWNERISBETTER" oninput="checkCode()">
+            <input type="text" id="secret-input" placeholder="Secret Code..." oninput="checkCode()">
 
-            <button id="reset-btn" style="background:transparent; color:#ff4444; border:none; cursor:pointer; margin-top:auto; font-size: 0.8rem;">Wipe Data</button>
+            <button id="reset-btn" style="background:transparent; color:#888; border:none; cursor:pointer; margin-top:auto; font-size: 0.7rem;" onclick="location.reload()">Refresh Page</button>
         </div>
     </div>
 
@@ -157,7 +164,8 @@
             const input = document.getElementById('secret-input');
             if (input.value === 'OWNERISBETTER') {
                 document.getElementById('admin-panel').style.display = 'block';
-                input.style.display = 'none'; 
+                input.value = ""; // CLEARS THE CODE BOX
+                input.style.display = 'none'; // HIDES THE BOX
             }
         }
 
@@ -165,14 +173,25 @@
         function addMoney() { crystals += 1000000000; updateUI(); }
         
         function superSpeed() { 
-            originalCps = cps; 
-            cps = (cps === 0) ? 1000 : cps * 10; 
+            if (cps > 0) originalCps = cps; 
+            cps = (cps <= 0) ? 1000 : cps * 10; 
             updateUI(); 
         }
         function disableSpeed() { cps = originalCps; updateUI(); }
 
         function godMode() { godClickActive = true; }
         function disableGod() { godClickActive = false; }
+
+        function fullReset() {
+            if(confirm("OWNER: Are you sure you want to reset EVERYTHING to 0?")) {
+                crystals = 0;
+                cps = 0;
+                originalCps = 0;
+                localStorage.clear();
+                updateUI();
+                alert("Player has been reset to 0.");
+            }
+        }
 
         // --- CORE GAME ---
         function updateUI() {
@@ -188,7 +207,7 @@
             localStorage.setItem('cps', cps);
         }
 
-        document.getElementById('asteroid-clicker').addEventListener('click', (e) => {
+        document.getElementById('asteroid-clicker').onclick = (e) => {
             let power = godClickActive ? 1000000000 : (1 + (cps * 0.15));
             crystals += power;
             
@@ -197,17 +216,28 @@
             num.innerText = "+" + Math.floor(power).toLocaleString();
             num.style.left = e.clientX + 'px';
             num.style.top = e.clientY + 'px';
-            if(godClickActive) num.style.color = "yellow";
+            if(godClickActive) num.style.color = "#FFD700";
             document.body.appendChild(num);
             setTimeout(() => num.remove(), 800);
             updateUI();
-        });
+        };
 
-        document.getElementById('buy-drill').onclick = () => { if(crystals >= drillCost) { crystals -= drillCost; cps += 1; updateUI(); } }
-        document.getElementById('buy-drone').onclick = () => { if(crystals >= droneCost) { crystals -= droneCost; cps += 8; updateUI(); } }
-        document.getElementById('buy-cannon').onclick = () => { if(crystals >= cannonCost) { crystals -= cannonCost; cps += 40; updateUI(); } }
+        function buyItem(item) {
+            if(item === 'drill' && crystals >= drillCost) { crystals -= drillCost; cps += 1; }
+            if(item === 'drone' && crystals >= droneCost) { crystals -= droneCost; cps += 8; }
+            if(item === 'cannon' && crystals >= cannonCost) { crystals -= cannonCost; cps += 40; }
+            updateUI();
+        }
 
-        document.getElementById('reset-btn').onclick = () => { localStorage.clear(); location.reload(); }
+        const loginBtn = document.getElementById('login-btn');
+        loginBtn.onclick = () => {
+            let name = prompt("Enter Google Username:");
+            if(name) {
+                loginBtn.style.display = 'none';
+                document.getElementById('player-name').innerText = "👨‍🚀 " + name;
+                document.getElementById('player-name').style.display = 'block';
+            }
+        };
 
         setInterval(() => {
             crystals += (cps / 10);
