@@ -16,7 +16,6 @@
             margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; height: 100vh;
         }
 
-        /* Top Header */
         #top-nav {
             display: flex; justify-content: space-between; align-items: center;
             width: 100%; padding: 15px 25px; background: rgba(0, 0, 0, 0.8);
@@ -28,7 +27,6 @@
             text-shadow: 0 0 15px var(--neon-blue);
         }
 
-        /* Main Game Layout */
         #main-container {
             display: flex; width: 100%; height: 100%;
             justify-content: space-around; align-items: center; padding: 20px; box-sizing: border-box;
@@ -40,19 +38,16 @@
             height: 75vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
-        /* Asteroid Styling */
         #asteroid-clicker { position: relative; cursor: pointer; transition: transform 0.1s; }
         #asteroid-clicker:active { transform: scale(0.92); }
         #asteroid-img { width: 280px; filter: drop-shadow(0 0 30px rgba(0, 212, 255, 0.2)); }
 
-        /* Leaderboard Styling */
         .leader-item {
             display: flex; justify-content: space-between; padding: 12px;
             border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem;
         }
         .leader-item.me { color: var(--neon-blue); font-weight: bold; background: rgba(0, 212, 255, 0.1); border-radius: 8px; }
 
-        /* Shop Buttons */
         .shop-btn {
             background: var(--neon-blue); border: none; color: black;
             padding: 14px; border-radius: 10px; font-weight: bold;
@@ -66,7 +61,22 @@
             border-radius: 8px; font-weight: bold; cursor: pointer; border: none;
         }
 
-        /* Floating Numbers */
+        /* --- NEW: Secret Admin Styling --- */
+        #admin-panel {
+            display: none; /* Hidden by default */
+            background: linear-gradient(45deg, #800000, #330000);
+            border: 2px solid #ff0000;
+            padding: 15px; border-radius: 15px; margin-top: 10px;
+        }
+        .admin-btn {
+            background: #ff0000; color: white; width: 100%; 
+            margin-bottom: 5px; border: none; padding: 8px; cursor: pointer; font-weight: bold;
+        }
+        #secret-input {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px dashed #555;
+            color: #555; padding: 5px; border-radius: 5px; text-align: center; font-size: 0.7rem;
+        }
+
         .floating-num {
             position: absolute; color: var(--neon-blue); font-weight: bold;
             pointer-events: none; animation: floatUp 0.8s ease-out forwards;
@@ -83,7 +93,7 @@
     <div id="top-nav">
         <div class="crystal-display">💎 <span id="crystal-count">0</span></div>
         <div id="user-info">
-            <button id="login-btn">G | Sign in with Google</button>
+            <button id="login-btn">Sign in with Google</button>
             <span id="player-name" style="display:none; font-weight: bold; color: var(--neon-blue);"></span>
         </div>
     </div>
@@ -112,25 +122,46 @@
             <button class="shop-btn" id="buy-cannon">🛰️ Plasma Cannon (Cost: 500)</button>
             <button class="shop-btn" id="buy-base">🚀 Moon Base (Cost: 2.5K)</button>
             
+            <div id="admin-panel">
+                <h4 style="margin:0 0 10px 0; color: #ff0000; text-align:center;">OWNER PANEL</h4>
+                <button class="admin-btn" onclick="addMoney()">+1B Crystals</button>
+                <button class="admin-btn" onclick="superSpeed()">10x CPS Boost</button>
+                <button class="admin-btn" onclick="godMode()">Enable God Click</button>
+            </div>
+            <input type="password" id="secret-input" placeholder="Enter Secret Code" oninput="checkCode()">
+
             <button id="reset-btn" style="background:transparent; color:#ff4444; border:none; cursor:pointer; margin-top:auto; font-size: 0.8rem;">Wipe Data</button>
         </div>
     </div>
 
     <script>
-        // --- GAME DATA ---
         let crystals = parseFloat(localStorage.getItem('crystals')) || 0;
         let cps = parseFloat(localStorage.getItem('cps')) || 0;
         let drillCost = parseFloat(localStorage.getItem('drillCost')) || 15;
         let droneCost = parseFloat(localStorage.getItem('droneCost')) || 100;
         let cannonCost = parseFloat(localStorage.getItem('cannonCost')) || 500;
         let baseCost = parseFloat(localStorage.getItem('baseCost')) || 2500;
+        let godClickActive = false;
 
-        // --- NAME SYSTEM ---
+        // --- CODE CHECKER ---
+        function checkCode() {
+            const input = document.getElementById('secret-input');
+            if (input.value === 'ownerisbetter') {
+                document.getElementById('admin-panel').style.display = 'block';
+                input.style.display = 'none'; // Hide input once activated
+            }
+        }
+
+        // --- ADMIN POWERS ---
+        function addMoney() { crystals += 1000000000; updateUI(); }
+        function superSpeed() { cps *= 10; updateUI(); }
+        function godMode() { godClickActive = true; alert("God Click Enabled!"); }
+
         const loginBtn = document.getElementById('login-btn');
         const playerNameDisp = document.getElementById('player-name');
 
         loginBtn.addEventListener('click', () => {
-            let name = prompt("Enter your Username:");
+            let name = prompt("Enter your Google Username:");
             if(name) {
                 loginBtn.style.display = 'none';
                 playerNameDisp.innerText = "👨‍🚀 " + name;
@@ -145,7 +176,6 @@
             playerNameDisp.style.display = 'block';
         }
 
-        // --- CORE ENGINE ---
         function updateUI() {
             document.getElementById('crystal-count').innerText = Math.floor(crystals).toLocaleString();
             document.getElementById('my-best').innerText = Math.floor(crystals).toLocaleString();
@@ -161,7 +191,6 @@
             document.getElementById('buy-cannon').disabled = crystals < cannonCost;
             document.getElementById('buy-base').disabled = crystals < baseCost;
 
-            // Auto-Save
             localStorage.setItem('crystals', crystals);
             localStorage.setItem('cps', cps);
             localStorage.setItem('drillCost', drillCost);
@@ -171,22 +200,20 @@
         }
 
         document.getElementById('asteroid-clicker').addEventListener('click', (e) => {
-            let power = 1 + (cps * 0.15); // Clicks get 15% of your CPS
+            let power = godClickActive ? 1000000 : (1 + (cps * 0.15));
             crystals += power;
             
-            // Pop Animation
             const num = document.createElement('div');
             num.className = 'floating-num';
-            num.innerText = "+" + Math.floor(power);
+            num.innerText = "+" + Math.floor(power).toLocaleString();
             num.style.left = e.clientX + 'px';
             num.style.top = e.clientY + 'px';
+            if(godClickActive) num.style.color = "gold";
             document.body.appendChild(num);
             setTimeout(() => num.remove(), 800);
-            
             updateUI();
         });
 
-        // SHOP LOGIC
         document.getElementById('buy-drill').onclick = () => {
             if(crystals >= drillCost) { crystals -= drillCost; cps += 1; drillCost *= 1.2; updateUI(); }
         }
@@ -204,7 +231,6 @@
             if(confirm("Delete all progress?")) { localStorage.clear(); location.reload(); }
         }
 
-        // Main Loop
         setInterval(() => {
             crystals += (cps / 10);
             updateUI();
